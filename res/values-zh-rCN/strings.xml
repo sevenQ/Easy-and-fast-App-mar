@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  Copyright (C) 2007 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+          http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+ -->
+
+<resources>
+    <string name="hello">Hello World, Main!</string>
+    <string name="app_name">7程序 快捷方式</string>
+    <string name="battery">电量:</string>
+    <string name="app">应用信息</string>
+    <string name="times">使用次数</string>
+    <string name="list_title">正在装载所有您自己安装的程序</string>
+    <string name="list_content">请稍等一会，第一次加载可能会有点慢</string>
+    <string name="time_unit">次</string>
+    <string name="operate">选择您需要的操作:</string>
+    <string name="cancel">取消</string>
+    <array name="choseitem">
+    	<item name="start">运行 ^-^</item>
+    	<item name="uninstall">删除 -_-</item>
+    </array>
+</resources>
