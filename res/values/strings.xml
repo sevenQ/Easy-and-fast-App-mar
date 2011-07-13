@@ -19,7 +19,7 @@
  -->
 <resources>
     <string name="hello">Hello World, Main!</string>
-    <string name="app_name">7Quick AppMgr</string>
+    <string name="app_name">Seven APP</string>
     <string name="battery">Battery:</string>
     <string name="app">App Info</string>
     <string name="times">used time(s)</string>

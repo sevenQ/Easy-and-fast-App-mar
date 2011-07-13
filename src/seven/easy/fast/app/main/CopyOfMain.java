@@ -38,7 +38,6 @@ import android.content.SharedPreferences.Editor;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageItemInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.drawable.Drawable;
@@ -59,11 +58,11 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class Main extends Activity implements OnItemClickListener {
+public class CopyOfMain extends Activity implements OnItemClickListener {
 	private static final String TAG = " Main ";
 	private ListView lv;
 	private List<PackageInfo> pi_list;
-	private static List<AppBean> pi_listUser;
+	private static List<PackageInfo> pi_listUser;
 	private  HashMap<Integer, String> user_label;
 	private  HashMap<Integer, String> user_package;
 	private  HashMap<Integer, Drawable> user_icon;
@@ -155,7 +154,7 @@ public class Main extends Activity implements OnItemClickListener {
 		pi_list = pm.getInstalledPackages(
 				PackageManager.GET_UNINSTALLED_PACKAGES
 						| PackageManager.GET_ACTIVITIES);
-		pi_listUser = new ArrayList<AppBean>();
+		pi_listUser = new ArrayList<PackageInfo>();
 		
 		for (PackageInfo pi : pi_list) {
 			ApplicationInfo ai = pi.applicationInfo;
@@ -163,11 +162,7 @@ public class Main extends Activity implements OnItemClickListener {
 					|| ((ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0)) {
 				// 别加自己 don't add itself.
 				if (!pi.packageName.equals("seven.easy.fast.app")) {
-					AppBean ab = new AppBean();
-					ab.activityInfo = pi.activities[0];
-					ab.packageName = pi.packageName;
-					ab.applicationInfo = pi.applicationInfo;
-					pi_listUser.add(ab);
+					pi_listUser.add(pi);
 				}
 			}
 		}
@@ -277,7 +272,7 @@ public class Main extends Activity implements OnItemClickListener {
 	public void onItemClick(AdapterView<?> parent, View view, int position,
 			long id) {
 		// Log.v("seven", "how many time on onItemClick");
-		final AppBean ab = pi_listUser.get(position);
+		final PackageInfo pi = pi_listUser.get(position);
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle(operate);
 		builder.setItems(R.array.choseitem,
@@ -287,15 +282,15 @@ public class Main extends Activity implements OnItemClickListener {
 					public void onClick(DialogInterface dialog, int which) {
 						switch (which) {
 						case 0:
-							String packageName = ab.packageName;
-							//PackageItemInfo ai = ab.applicationInfo;
-							String activityName = ab.activityInfo.name;
-							if (activityName == null || "".equals(activityName)) {
-								MyToast.myToastShow(Main.this, R.drawable.emo,
+							String packageName = pi.packageName;
+							ActivityInfo ai = pi.activities[0];
+							if (ai == null) {
+								MyToast.myToastShow(CopyOfMain.this, R.drawable.emo,
 										"No activity can be operated!",
 										Toast.LENGTH_SHORT);
 								return;
 							}
+							String activityName = ai.name;
 							Intent intent = new Intent();
 							intent.setComponent(new ComponentName(packageName,
 									activityName));
@@ -304,10 +299,10 @@ public class Main extends Activity implements OnItemClickListener {
 							editor.putInt(packageName, times + 1);
 							editor.commit();
 							startActivityForResult(intent, 1);
-							//finish();
+							finish();
 							break;
 						case 1:
-							Uri uri = Uri.parse("package:" + ab.packageName);
+							Uri uri = Uri.parse("package:" + pi.packageName);
 							Intent uninstallIntent = new Intent(
 									Intent.ACTION_DELETE, uri);
 							startActivityForResult(uninstallIntent, 0);
@@ -328,7 +323,7 @@ public class Main extends Activity implements OnItemClickListener {
 			String app = context.getString(R.string.app);
 			String times = context.getString(R.string.times);
 			battery_level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-			Main.this.setTitle(" "+battery+" " + battery_level + "%"
+			CopyOfMain.this.setTitle(" "+battery+" " + battery_level + "%"
 					+ " | "+app+" | "+times);
 		}
 
@@ -351,7 +346,7 @@ public class Main extends Activity implements OnItemClickListener {
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 			// LogHelper.d(TAG + " deletePackageName " +deletePackageName);
 
-			pi_list = Main.this.getPackageManager().getInstalledPackages(
+			pi_list = CopyOfMain.this.getPackageManager().getInstalledPackages(
 					PackageManager.GET_UNINSTALLED_PACKAGES
 							| PackageManager.GET_ACTIVITIES);
 			// List<PackageInfo> pi_listUserAfterDelete = new
@@ -363,10 +358,7 @@ public class Main extends Activity implements OnItemClickListener {
 						|| ((ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0)) {
 					// 别加自己
 					if (!pi.packageName.endsWith("seven.easy.fast.app")) {
-						AppBean ab = new AppBean();
-						ab.applicationInfo = pi.applicationInfo;
-						ab.packageName = pi.packageName;
-						pi_listUser.add(ab);
+						pi_listUser.add(pi);
 					}
 				}
 			}
@@ -390,11 +382,5 @@ public class Main extends Activity implements OnItemClickListener {
 			 * adjust/judge delete the AppS or no ! depend on list.size
 			 */
 		super.onActivityResult(requestCode, resultCode, data);
-	}
-	
-	static class AppBean{
-		ActivityInfo activityInfo;
-		ApplicationInfo applicationInfo;
-		String packageName;
 	}
 }
