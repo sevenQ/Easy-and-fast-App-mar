@@ -59,40 +59,47 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class Main extends Activity implements OnItemClickListener {
-	private static final String TAG = " Main ";
+	//private static final String TAG = " Main ";
 	private ListView lv;
-	private static List<PackageInfo> pi_list;
+	//private static List<PackageInfo> pi_list;
 	private static List<AppBean> pi_listUser;
 	private  HashMap<Integer, String> user_label;
 	private  HashMap<Integer, String> user_package;
 	private  HashMap<Integer, Drawable> user_icon;
 	private  HashMap<String, Integer> user_times;
+	
 	//private Handler updateHandler;
-	private Handler maxHandler;
-	private Handler maxHandler2;
+	private Handler maxHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			lv.setAdapter(adapter);
+			pd.dismiss();
+		}
+	};
+	private Handler maxHandler2 = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			adapter.notifyDataSetChanged();
+		}
+	};
+	
 	private ProgressDialog pd;
 	private SharedPreferences sp;
-
 	private BatteryReceiver br;
 	private int listSize;
-	private LayoutInflater inflater;
 	private PackageManager pm;
-	
-	private static int myPosition; 
-	
 	private BaseAdapter adapter = new ProgramList();
-	
 	//I18N
-	String list_title;
-	String list_content;
-	String time_unit;
-	String operate;
-	String cancel;
+	private String list_title;
+	private String list_content;
+	private String time_unit;
+	private String operate;
+	private String cancel;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		inflater = getLayoutInflater();
+		
 		pm = getPackageManager();
 		br = new BatteryReceiver();
 		registerReceiver(br, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -102,32 +109,12 @@ public class Main extends Activity implements OnItemClickListener {
 				android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		setContentView(R.layout.main);
-		sp = getSharedPreferences("data", MODE_WORLD_WRITEABLE);
+		sp = getSharedPreferences("data", MODE_PRIVATE);
 		initList();
-		
-		maxHandler = new Handler() {
-			@Override
-			public void handleMessage(Message msg) {
-				lv.setAdapter(adapter);
-				pd.dismiss();
-			}
-		};
-		
-		maxHandler2 = new Handler() {
-			@Override
-			public void handleMessage(Message msg) {
-				//lv.setAdapter(adapter);
-				adapter.notifyDataSetChanged();
-				lv.setSelection(myPosition);
-			}
-		};
-		
 		//new Thread(labelHandler).start();
-		new Thread(packnameAndTimesHandler).start();
-		new Thread(iconHandler).start();
+		new Thread(half_Handler).start();
+		new Thread(remain_Handler).start();
 	}
-	
-	
 
 	private void initList() {
 		
@@ -152,9 +139,7 @@ public class Main extends Activity implements OnItemClickListener {
 		user_times = new HashMap<String, Integer>();
 		
 		//initialize all user's Apps list
-		pi_list = pm.getInstalledPackages(
-				PackageManager.GET_UNINSTALLED_PACKAGES
-						| PackageManager.GET_ACTIVITIES);
+		List<PackageInfo> pi_list = this.getAllList();
 		pi_listUser = new ArrayList<AppBean>();
 		
 		for (PackageInfo pi : pi_list) {
@@ -167,9 +152,6 @@ public class Main extends Activity implements OnItemClickListener {
 					//LogHelper.d(TAG + pi.activities[0]);
 					if(pi.activities != null)
 					ab.activityInfo = pi.activities[0];
-/*					the soft softkeyboard not have Activity
-					if(pi.activities == null)
-					LogHelper.d(TAG + pi.packageName);*/
 					ab.packageName = pi.packageName;
 					ab.applicationInfo = pi.applicationInfo;
 					pi_listUser.add(ab);
@@ -182,12 +164,11 @@ public class Main extends Activity implements OnItemClickListener {
 	}
 
 
-	//load packName and times , label
-	Runnable packnameAndTimesHandler = new Runnable() {
+	private Runnable half_Handler = new Runnable() {
 
 		@Override
 		public void run() {
-			android.os.Process.setThreadPriority(android.os.Process.myTid(),-19);
+			//android.os.Process.setThreadPriority(android.os.Process.myTid(),-19);
 			
 			//LogHelper.d(TAG + " package and times start: " + System.currentTimeMillis() );
 			for (int i = 0; i < listSize; i++) {
@@ -197,7 +178,7 @@ public class Main extends Activity implements OnItemClickListener {
 				//user_label.put(i, (String) pi_listUser.get(i).applicationInfo.loadLabel(pm));
 				user_label.put(i, pm.getApplicationLabel(pi_listUser.get(i).applicationInfo).toString());
 				pd.setProgress(2*i);
-				if(i == listSize/2){
+				if(i == (listSize/2 + 1)){
 					maxHandler.sendEmptyMessage(0);
 				}
 			}
@@ -206,11 +187,10 @@ public class Main extends Activity implements OnItemClickListener {
 		}
 	};
 	
-	//load icon drawable
-	Runnable iconHandler = new Runnable() {
+	private Runnable remain_Handler = new Runnable() {
 		@Override
 		public void run() {
-			android.os.Process.setThreadPriority(android.os.Process.myTid(),-15);
+			//android.os.Process.setThreadPriority(android.os.Process.myTid(),-15);
 			
 			//LogHelper.d(TAG + " icon start: " + System.currentTimeMillis() );
 			for (int i = 0; i < listSize; i++) {
@@ -240,21 +220,21 @@ public class Main extends Activity implements OnItemClickListener {
 					public void onClick(DialogInterface dialog, int which) {
 						switch (which) {
 						case 0:
-							String packageName = ab.packageName;
+							//String packageName = ab.packageName;
 							//PackageItemInfo ai = ab.applicationInfo;
-							String activityName = ab.activityInfo.name;
-							if (activityName == null || "".equals(activityName)) {
+							//String activityName = ab.activityInfo.name;
+							if (ab.activityInfo == null) {
 								MyToast.myToastShow(Main.this, R.drawable.emo,
 										"No activity can be operated!",
 										Toast.LENGTH_SHORT);
 								return;
 							}
 							Intent intent = new Intent();
-							intent.setComponent(new ComponentName(packageName,
-									activityName));
-							int times = sp.getInt(packageName, 1);
+							intent.setComponent(new ComponentName(ab.packageName,
+									ab.activityInfo.name));
+							int times = sp.getInt(ab.packageName, 1);
 							Editor editor = sp.edit();
-							editor.putInt(packageName, times + 1);
+							editor.putInt(ab.packageName, times + 1);
 							editor.commit();
 							startActivityForResult(intent, 1);
 							//finish();
@@ -300,11 +280,9 @@ public class Main extends Activity implements OnItemClickListener {
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-			 LogHelper.d(TAG + " deletePackageName " + "deletePackageName");
+			// LogHelper.d(TAG + " deletePackageName " + "deletePackageName");
 
-			pi_list = Main.this.getPackageManager().getInstalledPackages(
-					PackageManager.GET_UNINSTALLED_PACKAGES
-							| PackageManager.GET_ACTIVITIES);
+			 List<PackageInfo> pi_list = this.getAllList();
 			// List<PackageInfo> pi_listUserAfterDelete = new
 			// ArrayList<PackageInfo>();
 			pi_listUser.clear();
@@ -315,6 +293,8 @@ public class Main extends Activity implements OnItemClickListener {
 					// 别加自己
 					if (!pi.packageName.endsWith("seven.easy.fast.app")) {
 						AppBean ab = new AppBean();
+						if(pi.activities != null)
+							ab.activityInfo = pi.activities[0];
 						ab.applicationInfo = pi.applicationInfo;
 						ab.packageName = pi.packageName;
 						pi_listUser.add(ab);
@@ -344,20 +324,20 @@ public class Main extends Activity implements OnItemClickListener {
 		super.onActivityResult(requestCode, resultCode, data);
 	}
 	
-	static class AppBean{
+	protected static class AppBean{
 		ActivityInfo activityInfo;
 		ApplicationInfo applicationInfo;
 		String packageName;
 	}
 	
-	static class ViewHolder {
+	protected static class ViewHolder {
 		TextView lv_item__appname;
 		ScrollTextView lv_item__apppackage;
 		ImageView lv_item_icon;
 		TextView tv_times;
 	}
 
-	class ProgramList extends BaseAdapter {
+	private class ProgramList extends BaseAdapter {
 
 		@Override
 		public int getCount() {
@@ -381,6 +361,7 @@ public class Main extends Activity implements OnItemClickListener {
 			if (convertView == null) {
 				// Log.v("seven",
 				// "how many times on getView when convertView == null");
+				LayoutInflater inflater = getLayoutInflater();
 				convertView = inflater.inflate(R.layout.list_view_items, null);
 				holder = new ViewHolder();
 				holder.lv_item__appname = (TextView) convertView.findViewById(R.id.lv_item__appname);
@@ -397,9 +378,14 @@ public class Main extends Activity implements OnItemClickListener {
 			holder.lv_item__apppackage.setText(user_package.get(position));
 			holder.lv_item_icon.setImageDrawable(user_icon.get(position));
 			holder.tv_times.setText(user_times.get(user_package.get(position))+ time_unit);
-			myPosition = position;
+			//myPosition = position;
 			return convertView;
 		}
 	}
 	
+	private final List<PackageInfo> getAllList(){
+		return this.getPackageManager().getInstalledPackages(
+				PackageManager.GET_UNINSTALLED_PACKAGES
+				| PackageManager.GET_ACTIVITIES);
+	}
 }

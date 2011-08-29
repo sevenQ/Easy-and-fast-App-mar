@@ -25,7 +25,7 @@
       >
     <uses-sdk android:minSdkVersion="7" />
 
-    <application android:icon="@drawable/emo" android:label="@string/app_name">
+    <application android:icon="@drawable/emo" android:label="@string/app_name" android:screenOrientation="portrait">
         <activity android:name="seven.easy.fast.app.main.Main"
                   android:label="@string/app_name"
                   android:screenOrientation="portrait"
