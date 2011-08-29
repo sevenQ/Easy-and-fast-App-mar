@@ -38,7 +38,6 @@ import android.content.SharedPreferences.Editor;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageItemInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.drawable.Drawable;
@@ -62,33 +61,33 @@ import android.widget.Toast;
 public class Main extends Activity implements OnItemClickListener {
 	private static final String TAG = " Main ";
 	private ListView lv;
-	private List<PackageInfo> pi_list;
+	private static List<PackageInfo> pi_list;
 	private static List<AppBean> pi_listUser;
 	private  HashMap<Integer, String> user_label;
 	private  HashMap<Integer, String> user_package;
 	private  HashMap<Integer, Drawable> user_icon;
 	private  HashMap<String, Integer> user_times;
 	//private Handler updateHandler;
-	private static Handler maxHandler;
-	private static Handler maxHandler2;
-	private static ProgressDialog pd;
+	private Handler maxHandler;
+	private Handler maxHandler2;
+	private ProgressDialog pd;
 	private SharedPreferences sp;
 
-	private static int battery_level;
 	private BatteryReceiver br;
 	private int listSize;
 	private LayoutInflater inflater;
 	private PackageManager pm;
 	
 	private static int myPosition; 
-	//in81
+	
+	private BaseAdapter adapter = new ProgramList();
+	
+	//I18N
 	String list_title;
 	String list_content;
 	String time_unit;
 	String operate;
 	String cancel;
-	
-
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -109,7 +108,7 @@ public class Main extends Activity implements OnItemClickListener {
 		maxHandler = new Handler() {
 			@Override
 			public void handleMessage(Message msg) {
-				lv.setAdapter(new ProgramList());
+				lv.setAdapter(adapter);
 				pd.dismiss();
 			}
 		};
@@ -117,7 +116,8 @@ public class Main extends Activity implements OnItemClickListener {
 		maxHandler2 = new Handler() {
 			@Override
 			public void handleMessage(Message msg) {
-				lv.setAdapter(new ProgramList());
+				//lv.setAdapter(adapter);
+				adapter.notifyDataSetChanged();
 				lv.setSelection(myPosition);
 			}
 		};
@@ -164,7 +164,12 @@ public class Main extends Activity implements OnItemClickListener {
 				// 别加自己 don't add itself.
 				if (!pi.packageName.equals("seven.easy.fast.app")) {
 					AppBean ab = new AppBean();
+					//LogHelper.d(TAG + pi.activities[0]);
+					if(pi.activities != null)
 					ab.activityInfo = pi.activities[0];
+/*					the soft softkeyboard not have Activity
+					if(pi.activities == null)
+					LogHelper.d(TAG + pi.packageName);*/
 					ab.packageName = pi.packageName;
 					ab.applicationInfo = pi.applicationInfo;
 					pi_listUser.add(ab);
@@ -176,59 +181,7 @@ public class Main extends Activity implements OnItemClickListener {
 		pd.setMax(listSize - 1);
 	}
 
-	static class ViewHolder {
-		TextView lv_item__appname;
-		ScrollTextView lv_item__apppackage;
-		ImageView lv_item_icon;
-		TextView tv_times;
-	}
 
-	class ProgramList extends BaseAdapter {
-
-		@Override
-		public int getCount() {
-			return pi_listUser.size();
-		}
-
-		@Override
-		public Object getItem(int position) {
-			return pi_listUser.get(position);
-		}
-
-		@Override
-		public long getItemId(int position) {
-			return position;
-		}
-
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-
-			ViewHolder holder;
-			if (convertView == null) {
-				// Log.v("seven",
-				// "how many times on getView when convertView == null");
-				convertView = inflater.inflate(R.layout.list_view_items, null);
-				holder = new ViewHolder();
-				holder.lv_item__appname = (TextView) convertView.findViewById(R.id.lv_item__appname);
-				holder.lv_item__apppackage = (ScrollTextView) convertView.findViewById(R.id.lv_item__apppackage);
-				holder.lv_item_icon = (ImageView) convertView.findViewById(R.id.lv_item_icon);
-				holder.tv_times = (TextView) convertView.findViewById(R.id.tv_times);
-				convertView.setTag(holder);
-			} else {
-				// Log.v("seven",
-				// "how many times on getView when convertView != null");
-				holder = (ViewHolder) convertView.getTag();
-			}
-			holder.lv_item__appname.setText(user_label.get(position));
-			holder.lv_item__apppackage.setText(user_package.get(position));
-			holder.lv_item_icon.setImageDrawable(user_icon.get(position));
-			holder.tv_times.setText(user_times.get(user_package.get(position))+ time_unit);
-			myPosition = position;
-			return convertView;
-		}
-	}
-	
-	
 	//load packName and times , label
 	Runnable packnameAndTimesHandler = new Runnable() {
 
@@ -324,12 +277,10 @@ public class Main extends Activity implements OnItemClickListener {
 
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			String battery = context.getString(R.string.battery);
-			String app = context.getString(R.string.app);
-			String times = context.getString(R.string.times);
-			battery_level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-			Main.this.setTitle(" "+battery+" " + battery_level + "%"
-					+ " | "+app+" | "+times);
+			Main.this.setTitle(" " + context.getString(R.string.battery) + " "
+					+ intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) + "%"
+					+ " | " + context.getString(R.string.app) + " | "
+					+ context.getString(R.string.times));
 		}
 
 	}
@@ -349,7 +300,7 @@ public class Main extends Activity implements OnItemClickListener {
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-			// LogHelper.d(TAG + " deletePackageName " +deletePackageName);
+			 LogHelper.d(TAG + " deletePackageName " + "deletePackageName");
 
 			pi_list = Main.this.getPackageManager().getInstalledPackages(
 					PackageManager.GET_UNINSTALLED_PACKAGES
@@ -384,7 +335,8 @@ public class Main extends Activity implements OnItemClickListener {
 				}
 				//user_icon.put(i,pi_listUser.get(i).applicationInfo.loadIcon(pm));
 			}
-			lv.setAdapter(new ProgramList());
+			adapter.notifyDataSetChanged();
+			//lv.setAdapter(adapter);
 
 			/**
 			 * adjust/judge delete the AppS or no ! depend on list.size
@@ -397,4 +349,57 @@ public class Main extends Activity implements OnItemClickListener {
 		ApplicationInfo applicationInfo;
 		String packageName;
 	}
+	
+	static class ViewHolder {
+		TextView lv_item__appname;
+		ScrollTextView lv_item__apppackage;
+		ImageView lv_item_icon;
+		TextView tv_times;
+	}
+
+	class ProgramList extends BaseAdapter {
+
+		@Override
+		public int getCount() {
+			return pi_listUser.size();
+		}
+
+		@Override
+		public Object getItem(int position) {
+			return pi_listUser.get(position);
+		}
+
+		@Override
+		public long getItemId(int position) {
+			return position;
+		}
+
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent) {
+
+			ViewHolder holder;
+			if (convertView == null) {
+				// Log.v("seven",
+				// "how many times on getView when convertView == null");
+				convertView = inflater.inflate(R.layout.list_view_items, null);
+				holder = new ViewHolder();
+				holder.lv_item__appname = (TextView) convertView.findViewById(R.id.lv_item__appname);
+				holder.lv_item__apppackage = (ScrollTextView) convertView.findViewById(R.id.lv_item__apppackage);
+				holder.lv_item_icon = (ImageView) convertView.findViewById(R.id.lv_item_icon);
+				holder.tv_times = (TextView) convertView.findViewById(R.id.tv_times);
+				convertView.setTag(holder);
+			} else {
+				// Log.v("seven",
+				// "how many times on getView when convertView != null");
+				holder = (ViewHolder) convertView.getTag();
+			}
+			holder.lv_item__appname.setText(user_label.get(position));
+			holder.lv_item__apppackage.setText(user_package.get(position));
+			holder.lv_item_icon.setImageDrawable(user_icon.get(position));
+			holder.tv_times.setText(user_times.get(user_package.get(position))+ time_unit);
+			myPosition = position;
+			return convertView;
+		}
+	}
+	
 }
