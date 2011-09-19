@@ -59,7 +59,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class Main extends Activity implements OnItemClickListener {
-	//private static final String TAG = " Main ";
+	private static final String TAG = " Main ";
 	private ListView lv;
 	//private static List<PackageInfo> pi_list;
 	private static List<AppBean> pi_listUser;
@@ -99,6 +99,21 @@ public class Main extends Activity implements OnItemClickListener {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+	/*	if (DEVELOPER_MODE) {
+		
+	         StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
+	                 .detectDiskReads()
+	                 .detectDiskWrites()
+	                 .detectNetwork()   // or .detectAll() for all detectable problems
+	                 .penaltyLog()
+	                 .build());
+	         StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
+	                 .detectLeakedSqlLiteObjects()
+	                 .detectLeakedClosableObjects()
+	                 .penaltyLog()
+	                 .penaltyDeath()
+	                 .build());
+	     }*/
 		
 		pm = getPackageManager();
 		br = new BatteryReceiver();
@@ -151,9 +166,10 @@ public class Main extends Activity implements OnItemClickListener {
 					AppBean ab = new AppBean();
 					//LogHelper.d(TAG + pi.activities[0]);
 					if(pi.activities != null)
-					ab.activityInfo = pi.activities[0];
+						ab.activityInfo = pi.activities[0];
 					ab.packageName = pi.packageName;
 					ab.applicationInfo = pi.applicationInfo;
+					//LogHelper.d(TAG + " applicationInfo label : " + pm.getApplicationIcon(ab.applicationInfo).toString() );
 					pi_listUser.add(ab);
 				}
 			}
@@ -197,6 +213,7 @@ public class Main extends Activity implements OnItemClickListener {
 				String packageName = pi_listUser.get(i).packageName;
 				try {
 					user_icon.put(i, pm.getApplicationIcon(packageName));
+					LogHelper.d(TAG + "icon := "+ pm.getApplicationIcon(packageName));
 				} catch (NameNotFoundException e) {
 					e.printStackTrace();
 				}
